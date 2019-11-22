@@ -57,10 +57,12 @@ int flip_game(){
     al_draw_bitmap(imagem,0,0,0);
     al_draw_bitmap(barra_img,barra.x_in,barra.y,0);
     al_draw_bitmap(bola_img,bola.x,bola.y,0);
- 
-            al_draw_bitmap(bloco_img,17,17,0);
-            al_draw_bitmap(bloco_img,17+45+12,17,0);
-
+        
+    for(int i=0;i<14;i++){
+        for(int j=0;j<8;j++){
+            al_draw_bitmap(bloco_img,17+57*i,17+42*j,0);
+        }
+    }
     al_flip_display();
 
     return 0;
@@ -88,6 +90,7 @@ bool flip_pos_bola(){
     int acres2 = 31;
 
     bool resp = false;
+    //add colisao aq
     if(bola.y + acres >= ALTURA_TELA){
         resp = busca();
         bola.y = -acres + ALTURA_TELA - (bola.y + acres - ALTURA_TELA);
@@ -124,11 +127,11 @@ int main(){
     /* registro fila de eventos */
     //reset(1);
 
-    barra.x_in = 0;
-    barra.x_out = 194;
+    barra.x_in = 340;
+    barra.x_out = 340+194;
     barra.y = 555;
-    bola.x = 0;
-    bola.y = 0;
+    bola.x = 400;
+    bola.y = 350;
     bola.vel = 3;
     bola.sent_x = 1;
     bola.sent_y = 1;
@@ -142,7 +145,6 @@ int main(){
     bool sair = false;
     bool pressl = false;
     bool pressr = false;
-
     while(!sair){
         ALLEGRO_EVENT evento;
         al_wait_for_event(fila_eventos,&evento);
