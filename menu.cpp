@@ -5,6 +5,7 @@ using namespace std;
 #define FPS 60.0
 #define LARGURA_TELA 820
 #define ALTURA_TELA 580
+#define vel_barra 10
 
 ALLEGRO_DISPLAY *janela = NULL;
 ALLEGRO_BITMAP *imagem = NULL;
@@ -28,6 +29,14 @@ struct Barra{
     int x_in,x_out;
     int y;
 };
+
+struct Reta{ // para tratar colisao
+
+   double m;
+   double b;
+   double x;
+};
+vector<Reta> linha(4);
 
 vector<Block> campo;
 
@@ -78,9 +87,85 @@ void registro_eventos(){
 }
 
 bool busca(){
-    bola.vel+=0.3;
+    //bola.vel+=0.3;
     if(barra.x_in - 18 <= bola.x && barra.x_out >= bola.x + 18) return false;
     return true;
+}
+
+bool check(Block b){
+
+    bool ret = false;
+    int ya,yb;
+    for(int i=0;i<4;i++){
+        ya = (linha[i].m * linha[i].x) + linha[i].b;
+    }
+}
+// calculando a reta da bola nos 4 pontos
+ void reta(){
+
+    int x0,xf;
+    int y0,yf;
+    Reta aux;
+    // ponto inicial
+    x0 = bola.x;
+    y0 = bola.y;
+    xf = bola.x + (bola.sent_x * bola.vel);
+    yf = bola.y + (bola.sent_y * bola.vel);
+
+    double m;
+    m = (double)(yf - y0)/(xf - x0);
+    aux.m = m;
+    aux.b = y0;
+    aux.x = x0;
+    linha[0] = aux;
+
+    // segundo ponto
+    x0 = bola.x + 33;
+    y0 = bola.y;
+    xf = (bola.x + 33) + (bola.sent_x * bola.vel);
+    yf = bola.y + (bola.sent_y * bola.vel);
+
+    m = (double)(yf - y0)/(xf - x0);
+    aux.m = m;
+    aux.b = y0;
+    aux.x = x0;
+    linha[1] = aux;
+
+    // terceiro ponto
+    x0 = bola.x;
+    y0 = bola.y + 33;
+    xf = bola.x + (bola.sent_x * bola.vel);
+    yf = (bola.y + 33) + (bola.sent_y * bola.vel);
+
+    m = (double)(yf - y0)/(xf - x0);
+    aux.m = m;
+    aux.b = y0;
+    aux.x = x0;
+    linha[2] = aux;
+
+    // quarto ponto
+    x0 = bola.x + 33;
+    y0 = bola.y + 33;
+    xf = (bola.x + 33) + (bola.sent_x * bola.vel);
+    yf = (bola.y + 33) + (bola.sent_y * bola.vel);
+
+    m = (double)(yf - y0)/(xf - x0);
+    aux.m = m;
+    aux.b = y0;
+    aux.x = x0;
+    linha[3] = aux;
+}
+
+bool check_colision(){
+
+    int colidiu;
+    //reta();
+    for(int i=0;i<campo.size();i++){
+        //if(campo[i].flag) colidiu = check(campo[i]);
+        if(colidiu) break;
+    }
+
+    return colidiu;
 }
 
 bool flip_pos_bola(int dir){
@@ -93,6 +178,7 @@ bool flip_pos_bola(int dir){
     bool resp = false;
     int coef;
     //add colisao aq
+    while(check_colision());
     if(bola.y + acres >= ALTURA_TELA){
         resp = busca();
         bola.y = -acres + ALTURA_TELA - (bola.y + acres - ALTURA_TELA);
@@ -191,15 +277,15 @@ int main(){
                 if(pressl){
                     dir = 1;
                     if(barra.x_in > 10){
-                        barra.x_in-=10;
-                        barra.x_out-=10;
+                        barra.x_in-=vel_barra;
+                        barra.x_out-=vel_barra;
                     }
                 }
                 else if(pressr){
                     dir = 2;
                     if(barra.x_out < LARGURA_TELA-10){
-                        barra.x_out+=10;
-                        barra.x_in+=10;
+                        barra.x_out+=vel_barra;
+                        barra.x_in+=vel_barra;
                     }
                 }
 
