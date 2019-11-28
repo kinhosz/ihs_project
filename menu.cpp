@@ -29,11 +29,12 @@ struct Barra{
     int y;
 };
 
+vector<Block> campo;
+
 Ball bola;
 Barra barra;
 
 void init(){
-
     al_init();
     al_init_image_addon();
     al_install_keyboard();
@@ -57,10 +58,10 @@ int flip_game(){
     al_draw_bitmap(imagem,0,0,0);
     al_draw_bitmap(barra_img,barra.x_in,barra.y,0);
     al_draw_bitmap(bola_img,bola.x,bola.y,0);
-        
-    for(int i=0;i<14;i++){
-        for(int j=0;j<8;j++){
-            al_draw_bitmap(bloco_img,17+57*i,17+42*j,0);
+
+    for(int i=0;i<campo.size();i++){
+        if(campo[i].flag){
+            al_draw_bitmap(bloco_img,campo[i].x,campo[i].y,0);
         }
     }
     al_flip_display();
@@ -82,7 +83,7 @@ bool busca(){
     return true;
 }
 
-bool flip_pos_bola(){
+bool flip_pos_bola(int dir){
 
     bola.x += bola.sent_x * bola.vel;
     bola.y += bola.sent_y * bola.vel;
@@ -90,11 +91,14 @@ bool flip_pos_bola(){
     int acres2 = 31;
 
     bool resp = false;
+    int coef;
     //add colisao aq
     if(bola.y + acres >= ALTURA_TELA){
         resp = busca();
         bola.y = -acres + ALTURA_TELA - (bola.y + acres - ALTURA_TELA);
         bola.sent_y *= -1;
+        if(dir == 1) bola.sent_x = -1;
+        else if(dir == 2) bola.sent_x = 1;
     }
     else if(bola.y < 0){
         bola.y *= -1;
@@ -113,19 +117,7 @@ bool flip_pos_bola(){
     return resp;
 }
 
-int main(){
-
-    init();
-    
-    /* carregando as imagens */
-    janela = al_create_display(LARGURA_TELA, ALTURA_TELA);
-    imagem = al_load_bitmap("image/background.png");
-    barra_img = al_load_bitmap("image/barra.png");
-    bola_img = al_load_bitmap("image/bola.png");
-    bloco_img = al_load_bitmap("image/bloco.png");
-
-    /* registro fila de eventos */
-    //reset(1);
+void restart_game(){
 
     barra.x_in = 340;
     barra.x_out = 340+194;
@@ -136,6 +128,34 @@ int main(){
     bola.sent_x = 1;
     bola.sent_y = 1;
 
+    campo.clear();
+    Block aux; // criando blocos
+    for(int i=0;i<14;i++){
+        for(int j=0;j<8;j++){
+            aux.x = 17+57*i;
+            aux.y = 17+42*j;
+            aux.flag = true;
+            campo.push_back(aux);
+        }
+    }
+}
+
+int main(){
+
+    init();
+    
+    /* carregando as imagens */
+    janela = al_create_display(LARGURA_TELA, ALTURA_TELA);
+    imagem = al_load_bitmap("image/background.jpg");
+    barra_img = al_load_bitmap("image/barra.jpg");
+    bola_img = al_load_bitmap("image/bola.png");
+    bloco_img = al_load_bitmap("image/bloco.jpg");
+
+    /* registro fila de eventos */
+    //reset(1);
+
+    restart_game();
+
     registro_eventos();
     flip_game();
 
@@ -143,68 +163,93 @@ int main(){
     int botao;
 
     bool sair = false;
-    bool pressl = false;
-    bool pressr = false;
+    int dir; // direcao que a barra esta indo, ajudara para identificar o movimento da bola
     while(!sair){
-        ALLEGRO_EVENT evento;
-        al_wait_for_event(fila_eventos,&evento);
-        int ret= 0;
+        //fprintf(stderr,"oi\n");
+        restart_game();
+        flip_game();
+        bool pressl = false;
+        bool pressr = false;
+        int press_any = false;
+        while(!press_any && !sair){
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(fila_eventos,&evento);
+            
+            if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                press_any = true; // start game 
+            }
+        }
+        bool rodando = true;
+        while(rodando){ // loop do jogo
+            ALLEGRO_EVENT evento;
+            al_wait_for_event(fila_eventos,&evento);
+            int ret= 0;
+            if(evento.type == ALLEGRO_EVENT_TIMER){
 
-        if(evento.type == ALLEGRO_EVENT_TIMER){
+                rodando = !flip_pos_bola(dir);
+                dir = 0;
+                if(pressl){
+                    dir = 1;
+                    if(barra.x_in > 10){
+                        barra.x_in-=10;
+                        barra.x_out-=10;
+                    }
+                }
+                else if(pressr){
+                    dir = 2;
+                    if(barra.x_out < LARGURA_TELA-10){
+                        barra.x_out+=10;
+                        barra.x_in+=10;
+                    }
+                }
 
-            sair = flip_pos_bola();
+                if(pressl && pressr) dir = 0;
 
-            if(pressl){
-                if(barra.x_in > 10){
-                    barra.x_in-=10;
-                    barra.x_out-=10;
+                ret = flip_game();
+                if(ret == -1){
+                    sair = true; // end of game
+                    rodando = false;
                 }
             }
-            else if(pressr){
-                if(barra.x_out < LARGURA_TELA-10){
-                    barra.x_out+=10;
-                    barra.x_in+=10;
+            else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
+                switch(evento.keyboard.keycode){
+                    case ALLEGRO_KEY_LEFT:
+                        pressl = true;
+                    break;
+                    case ALLEGRO_KEY_RIGHT:
+                        pressr = true;
+                    break;
+                    case ALLEGRO_KEY_ESCAPE:
+                        sair = true;
+                        rodando = false;
+                    break;
                 }
             }
+            else if(evento.type == ALLEGRO_EVENT_KEY_UP){
+                switch(evento.keyboard.keycode){
+                    case ALLEGRO_KEY_LEFT:
+                        pressl = false;
+                    break;
+                    case ALLEGRO_KEY_RIGHT:
+                        pressr = false;
+                    break;
+                    case ALLEGRO_KEY_ESCAPE:
+                        sair = true;
+                        rodando = false;
+                    break;
+                }
+            }
+        }
 
-            ret = flip_game();
-            if(ret == -1){
-                sair = true; // end of game
-            }
-        }
-        else if(evento.type == ALLEGRO_EVENT_KEY_DOWN){
-            switch(evento.keyboard.keycode){
-                case ALLEGRO_KEY_LEFT:
-                    pressl = true;
-                break;
-                case ALLEGRO_KEY_RIGHT:
-                    pressr = true;
-                break;
-                case ALLEGRO_KEY_ESCAPE:
-                    sair = true;
-                break;
-            }
-        }
-        else if(evento.type == ALLEGRO_EVENT_KEY_UP){
-            switch(evento.keyboard.keycode){
-                case ALLEGRO_KEY_LEFT:
-                    pressl = false;
-                break;
-                case ALLEGRO_KEY_RIGHT:
-                    pressr = false;
-                break;
-                case ALLEGRO_KEY_ESCAPE:
-                    sair = true;
-                break;
-            }
-        }
+        if(!sair){
+            imagem = al_load_bitmap("image/perder.jpeg");
+            al_draw_bitmap(imagem,0,0,0);
+            al_flip_display();
+            al_rest(1.0); 
+            imagem = al_load_bitmap("image/background.jpg"); // tela volta a ser o background 
+        }  
     }
 
-   // al_rest(3.0);
-    imagem = al_load_bitmap("image/perder.jpeg");
-    al_draw_bitmap(imagem,0,0,0);
-    al_flip_display();
-    al_rest(3.0);    
     destroy();
 
     return 0;
